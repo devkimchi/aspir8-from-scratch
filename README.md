@@ -28,16 +28,16 @@ Let's deploy Aspire-flavoured apps to a [Kubernetes](https://kubernetes.io/) clu
 
 1. Get dashboard version.
 
-  ```bash
-  dashboard_version=$(curl 'https://api.github.com/repos/kubernetes/dashboard/releases' | \
-    jq -r '[.[] | select(.name | contains("-") | not)] | .[0].name')
-  ```
+    ```bash
+    dashboard_version=$(curl 'https://api.github.com/repos/kubernetes/dashboard/releases' | \
+      jq -r '[.[] | select(.name | contains("-") | not)] | .[0].name')
+    ```
 
 1. Install dashboard.
 
-  ```bash
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
-  ```
+    ```bash
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
+    ```
 
 <!-- 1. Install metrics server.
 
