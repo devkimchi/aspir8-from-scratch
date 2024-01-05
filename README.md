@@ -36,13 +36,15 @@ Let's deploy Aspire-flavoured apps to a [Kubernetes](https://kubernetes.io/) clu
 1. Install dashboard.
 
     ```bash
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
+    kubectl apply -f \
+      https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
     ```
 
 <!-- 1. Install metrics server.
 
     ```bash
-    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+    kubectl apply -f \
+      https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
     ``` -->
 
 1. Create admin user.
@@ -82,7 +84,9 @@ Let's deploy Aspire-flavoured apps to a [Kubernetes](https://kubernetes.io/) clu
 1. Get the access token.
 
     ```bash
-    kubectl get secret admin-user -n kubernetes-dashboard -o jsonpath={".data.token"} | base64 -d
+    kubectl get secret admin-user \
+      -n kubernetes-dashboard \
+      -o jsonpath={".data.token"} | base64 -d
     ```
 
 1. Run the proxy server.
