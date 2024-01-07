@@ -137,7 +137,7 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 ### Use local container registry
 
-1. Install [Distribution (formally known as Registry)](https://github.com/distribution/distribution).
+1. Install [Distribution (formerly known as Registry)](https://github.com/distribution/distribution).
 
     ```bash
     docker run -d -p 6000:5000 --name registry registry:latest
