@@ -103,8 +103,119 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 ## Aspire-flavoured App Build
 
-TBD
+1. Install .NET Aspire workload.
+
+    ```bash
+    sudo dotnet workload update && sudo dotnet workload install aspire
+    ```
+
+1. Create a new Aspire starter app.
+
+    ```bash
+    dotnet new aspire-starter -n Aspir8
+    ```
+
+1. Build the app.
+
+    ```bash
+    dotnet restore && dotnet build
+    ```
+
+1. Run the app locally.
+
+    ```bash
+    dotnet run --project Aspir8.AppHost
+    ```
+
+1. Open the app in a browser.
+
+    ```text
+    http://localhost:18888
+    ```
 
 ## Aspire-flavoured App Deployment to Kubernetes Cluster through Aspir8
+
+### Use local container registry
+
+1. Install [Distribution (formally known as Registry)](https://github.com/distribution/distribution).
+
+    ```bash
+    docker run -d -p 6000:5000 --name registry registry:latest
+    ```
+
+   > **Note:** The port number of `6000` is just an arbitrary number. You can choose your own one.
+
+1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
+
+    ```bash
+    dotnet tool install -g aspirate --prerelease
+    ```
+
+1. Initialise Aspir8.
+
+    ```bash
+    cd Aspir8.AppHost
+    aspirate init
+    ```
+
+   - Set the fall-back container registry to `localhost:6000`.
+   - Skip the fall-back container tag.
+   - Skip the custom directory for the kustomize manifest template.
+
+1. Build and publish the app to the local container registry.
+
+    ```bash
+    aspirate generate
+    ```
+
+   - Choose all components while generating.
+   - Select the impage pull policy to `IfNotPresent`.
+   - Generate the top level kustomize manifest for the Kubernetes cluster.
+
+1. Deploy the app to the Kubernetes cluster.
+
+    ```bash
+    aspirate apply
+    ```
+
+   - Choose the Kubernetes cluster to `docker-desktop`.
+
+1. Check the services in the Kubernetes cluster.
+
+    ```bash
+    kubectl get services
+    ```
+
+1. Update the service type of `webfrontent` to `NodePort`.
+
+    ```bash
+    kubectl patch svc webfrontend -n default -p '{"spec": {"type": "NodePort"}}'
+    ```
+
+1. Confirm the `webfrontend` service type updated, and note the port number of the `webfrontend` service, `32689` for example.
+
+    ```bash
+    kubectl get services
+    ```
+
+1. Open the app in a browser.
+
+    ```text
+    http://localhost:32689
+    ```
+
+### Use Azure Kubernetes Services (AKS)
+
+TBD
+
+### Use Amazon Elastic Kubernetes Service (EKS)
+
+TBD
+
+### Use Google Kubernetes Engine (GKE)
+
+TBD
+
+### Use NHN Kubernetes Services (NKS)
 
 TBD
