@@ -127,7 +127,7 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
     dotnet run --project Aspir8.AppHost
     ```
 
-1. Open the app in a browser.
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
 
     ```text
     http://localhost:18888
@@ -198,7 +198,7 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
     kubectl get services
     ```
 
-1. Open the app in a browser.
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
 
     ```text
     http://localhost:32689
