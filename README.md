@@ -6,10 +6,14 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) with the [Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling?tabs=dotnet-cli)
-- [Visual Studio Code](https://code.visualstudio.com/) with the [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension
-- [Azure Account](https://azure.microsoft.com/free)
+- for Aspire
+  - [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) with the [Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling?tabs=dotnet-cli)
+  - [Visual Studio Code](https://code.visualstudio.com/) with the [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension
+- for local Kubernetes cluster
+  - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- for Azure
+  - [Azure subscription](https://azure.microsoft.com/free)
+  - [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
 
 ## Local Kubernetes Cluster Setup through Docker Desktop
 
@@ -18,6 +22,8 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 1. [Deploy sample app to a Kubernetes cluster](https://docs.docker.com/get-started/kube-deploy/).
 
 ## Kubernetes Dashboard Setup
+
+<!-- If you want to directly setup the Kubernetes Dashboard on your local machine, follow the steps below. Otherwise, skip this section and go to the next section, [MicroK8s Setup](#microk8s-setup). -->
 
 > **Note:** This is only applicable for Kubernetes Dashboard v2.x. From v3.x, use [Helm Charts](https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard) approach.
 
@@ -100,6 +106,10 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
     ```text
     http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
     ```
+
+<!-- ## MicroK8s Setup
+
+TBD -->
 
 ## Aspire-flavoured App Build
 
@@ -206,7 +216,145 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 ### Use Azure Kubernetes Services (AKS)
 
-TBD
+> **Note:** It uses [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli), which is the imperative approach. The declarative approach using Bicep is TBD.
+
+1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `koreacentral`).
+
+    ```bash
+    export AZURE_ENV_NAME="aspir8$RANDOM"
+    export AZ_RESOURCE_GROUP=rg-$AZURE_ENV_NAME
+    export AZ_NODE_RESOURCE_GROUP=rg-$AZURE_ENV_NAME-mc
+    export AZ_LOCATION=eastus
+    export ACR_NAME=acr$AZURE_ENV_NAME
+    export AKS_CLUSTER_NAME=aks-$AZURE_ENV_NAME
+    ```
+
+1. Create a resource group.
+
+    ```bash
+    az group create -n=$AZ_RESOURCE_GROUP -l=$AZ_LOCATION
+    ```
+
+1. Create an Azure Container Registry.
+
+    ```bash
+    az acr create \
+        -g $AZ_RESOURCE_GROUP \
+        -n $ACR_NAME \
+        -l $AZ_LOCATION \
+        --sku Basic \
+        --admin-enabled true
+    ```
+
+1. Get Azure Container Registry credentials.
+
+    ```bash
+    export ACR_LOGIN_SERVER=$(az acr show \
+        -g $AZ_RESOURCE_GROUP \
+        -n $ACR_NAME \
+        --query "loginServer" -o tsv)
+    export ACR_USERNAME=$(az acr credential show \
+        -g $AZ_RESOURCE_GROUP \
+        -n $ACR_NAME \
+        --query "username" -o tsv)
+    export ACR_PASSWORD=$(az acr credential show \
+        -g $AZ_RESOURCE_GROUP \
+        -n $ACR_NAME \
+        --query "passwords[0].value" -o tsv)
+    ```
+
+1. Create an AKS cluster.
+
+   > **Note:** Depending on the location you create the cluster, the VM size might vary.
+
+    ```bash
+    az aks create \
+        -g $AZ_RESOURCE_GROUP \
+        -n $AKS_CLUSTER_NAME \
+        -l $AZ_LOCATION \
+        --node-resource-group $AZ_NODE_RESOURCE_GROUP \
+        --node-vm-size Standard_B2s \
+        --network-plugin azure \
+        --generate-ssh-keys \
+        --attach-acr $ACR_NAME
+    ```
+
+1. Connect to the AKS cluster.
+
+    ```bash
+    az aks get-credentials \
+        -g $AZ_RESOURCE_GROUP \
+        -n $AKS_CLUSTER_NAME \
+    ```
+
+1. Connect to Azure Container Registry.
+
+   > **Note:** This is the demo purpose only. You should manually enter username and password from your input.
+
+    ```bash
+    docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD
+    ```
+
+1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
+
+    ```bash
+    dotnet tool install -g aspirate --prerelease
+    ```
+
+1. Initialise Aspir8.
+
+    ```bash
+    cd Aspir8.AppHost
+    aspirate init -cr $ACR_LOGIN_SERVER -ct latest --non-interactive
+    ```
+
+1. Build and publish the app to Azure Container Registry.
+
+    ```bash
+    aspirate generate --image-pull-policy IfNotPresent --non-interactive
+    ```
+
+1. Deploy the app to the AKS cluster.
+
+    ```bash
+    aspirate apply -k $AKS_CLUSTER_NAME --non-interactive
+    ```
+
+1. Install a load balancer to the AKS cluster.
+
+    ```bash
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: webfrontend
+    spec:
+      ports:
+      - port: 80
+        targetPort: 8080
+      selector:
+        app: webfrontend
+      type: LoadBalancer
+    EOF
+    ```
+
+1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
+
+    ```bash
+    kubectl get services
+    ```
+
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
+
+    ```text
+    http://<EXTERNAL_IP_ADDRESS>
+    ```
+
+1. Once you are done, delete the entire resources from Azure.
+
+    ```bash
+    az group delete -n $AZ_RESOURCE_GROUP -y
+    ```
 
 ### Use Amazon Elastic Kubernetes Service (EKS)
 
