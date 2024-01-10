@@ -235,7 +235,7 @@ TBD -->
     az group create -n=$AZ_RESOURCE_GROUP -l=$AZ_LOCATION
     ```
 
-1. Create an Azure Container Registry.
+1. Create an [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
     ```bash
     az acr create \
@@ -263,7 +263,7 @@ TBD -->
         --query "passwords[0].value" -o tsv)
     ```
 
-1. Create an AKS cluster.
+1. Create an [AKS](https://learn.microsoft.com/azure/aks/intro-kubernetes) cluster.
 
    > **Note:** Depending on the location you create the cluster, the VM size might vary.
 
