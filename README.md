@@ -353,7 +353,7 @@ TBD -->
 1. Once you are done, delete the entire resources from Azure.
 
     ```bash
-    az group delete -n $AZ_RESOURCE_GROUP -y
+    az group delete -n $AZ_RESOURCE_GROUP --no-wait -f -y
     ```
 
 ### Use Amazon Elastic Kubernetes Service (EKS)
