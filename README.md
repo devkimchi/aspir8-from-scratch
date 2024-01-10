@@ -235,7 +235,7 @@ TBD -->
     az group create -n=$AZ_RESOURCE_GROUP -l=$AZ_LOCATION
     ```
 
-1. Create an [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
+1. Create an [Azure Container Registry (ACR)](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
     ```bash
     az acr create \
@@ -246,7 +246,7 @@ TBD -->
         --admin-enabled true
     ```
 
-1. Get Azure Container Registry credentials.
+1. Get ACR credentials.
 
     ```bash
     export ACR_LOGIN_SERVER=$(az acr show \
@@ -287,7 +287,7 @@ TBD -->
         -n $AKS_CLUSTER_NAME \
     ```
 
-1. Connect to Azure Container Registry.
+1. Connect to ACR.
 
    > **Note:** This is the demo purpose only. You should manually enter username and password from your input.
 
@@ -308,7 +308,7 @@ TBD -->
     aspirate init -cr $ACR_LOGIN_SERVER -ct latest --non-interactive
     ```
 
-1. Build and publish the app to Azure Container Registry.
+1. Build and publish the app to ACR.
 
     ```bash
     aspirate generate --image-pull-policy IfNotPresent --non-interactive
@@ -367,3 +367,91 @@ TBD
 ### Use NHN Kubernetes Services (NKS)
 
 TBD
+
+<!-- > **Note:** It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Container Registry (NCR) and NHN Kubernetes Service (NKS).
+
+1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `Korea (Pangyo)`).
+
+    ```bash
+    export NHN_ENV_NAME="aspir8$RANDOM"
+    export NCR_NAME=ncr$NHN_ENV_NAME
+    export NKS_CLUSTER_NAME=nks-$NHN_ENV_NAME
+    ```
+
+1. Create an NCR instance from the console.
+1. Get NCR credentials from the console.
+1. Create an NKS cluster from the console.
+1. Get NKS cluster kubeconfig from the console.
+1. Connect to the NKS cluster using kubeconfig.
+
+    ```bash
+    export KUBECONFIG=~/.kube/config:~/path/to/downloaded/kubeconfig
+    kubectl config view --merge --flatten > ~/.kube/merged_kubeconfig
+    mv ~/.kube/config ~/.kube/config.bak
+    mv ~/.kube/merged_kubeconfig ~/.kube/config
+    ```
+
+1. Change the context to the NKS cluster.
+
+    ```bash
+    kubectl config use-context default
+    ```
+
+1. Connect to NCR.
+
+   > **Note:** This is the demo purpose only. You should manually enter username and password from your input.
+
+    ```bash
+    docker login <NCR_LOGIN_SERVER>/<NCR_REGISTRY_NAME> -u <NCR_ACCESS_KEY> -p <NCR_SECRET_KEY>
+    ```
+
+1. Initialise Aspir8.
+
+    ```bash
+    cd Aspir8.AppHost
+    aspirate init -cr <NCR_LOGIN_SERVER> -ct latest --non-interactive
+    ```
+
+1. Build and publish the app to NCR.
+
+    ```bash
+    aspirate generate --image-pull-policy IfNotPresent --non-interactive
+    ```
+
+1. Deploy the app to the NKS cluster.
+
+    ```bash
+    aspirate apply -k toast-$NKS_CLUSTER_NAME --non-interactive
+    ```
+
+1. Install a load balancer to the NKS cluster.
+
+    ```bash
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: webfrontend
+    spec:
+      ports:
+      - port: 80
+        targetPort: 8080
+      selector:
+        app: webfrontend
+      type: LoadBalancer
+    EOF
+    ```
+
+1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
+
+    ```bash
+    kubectl get services
+    ```
+
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
+
+    ```text
+    http://<EXTERNAL_IP_ADDRESS>
+    ```
+
+1. Once you are done, delete the entire resources from the console. -->
