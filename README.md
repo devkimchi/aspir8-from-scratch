@@ -368,7 +368,7 @@ TBD
 
 > **Note:** It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Kubernetes Service (NKS), and uses [Docker Hub](https://hub.docker.com) as the container registry.
 
-1. Add the following container registry details to `Aspir8.ApiService/Aspir8.ApiService.csproj`.
+1. Add the following Docker Hub repository details to `Aspir8.ApiService/Aspir8.ApiService.csproj`.
 
     ```xml
     <PropertyGroup>
@@ -376,7 +376,7 @@ TBD
     </PropertyGroup>
     ```
 
-1. Add the following container registry details to `Aspir8.Web/Aspir8.Web.csproj`.
+1. Add the following Docker Hub repository details to `Aspir8.Web/Aspir8.Web.csproj`.
 
     ```xml
     <PropertyGroup>
