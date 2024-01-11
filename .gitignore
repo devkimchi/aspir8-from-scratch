@@ -487,3 +487,7 @@ $RECYCLE.BIN/
 .DS_Store
 Aspir8.sln
 src/
+aks/
+eks/
+gke/
+nks/

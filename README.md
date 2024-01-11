@@ -366,20 +366,31 @@ TBD
 
 ### Use NHN Kubernetes Services (NKS)
 
-TBD
+> **Note:** It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Kubernetes Service (NKS), and uses [Docker Hub](https://hub.docker.com) as the container registry.
 
-<!-- > **Note:** It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Container Registry (NCR) and NHN Kubernetes Service (NKS).
+1. Add the following container registry details to `src/Aspir8.ApiService/Aspir8.ApiService.csproj`.
 
-1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `Korea (Pangyo)`).
+    ```xml
+    <PropertyGroup>
+      <ContainerRepository>{{DOCKER_USERNAME}}/apiservice</ContainerRepository>
+    </PropertyGroup>
+    ```
+
+1. Add the following container registry details to `src/Aspir8.Web/Aspir8.Web.csproj`.
+
+    ```xml
+    <PropertyGroup>
+      <ContainerRepository>{{DOCKER_USERNAME}}/webfrontend</ContainerRepository>
+    </PropertyGroup>
+    ```
+
+1. Set environment variables.
 
     ```bash
     export NHN_ENV_NAME="aspir8$RANDOM"
-    export NCR_NAME=ncr$NHN_ENV_NAME
     export NKS_CLUSTER_NAME=nks-$NHN_ENV_NAME
     ```
 
-1. Create an NCR instance from the console.
-1. Get NCR credentials from the console.
 1. Create an NKS cluster from the console.
 1. Get NKS cluster kubeconfig from the console.
 1. Connect to the NKS cluster using kubeconfig.
@@ -397,22 +408,22 @@ TBD
     kubectl config use-context default
     ```
 
-1. Connect to NCR.
+1. Connect to Docker Hub.
 
    > **Note:** This is the demo purpose only. You should manually enter username and password from your input.
 
     ```bash
-    docker login <NCR_LOGIN_SERVER>/<NCR_REGISTRY_NAME> -u <NCR_ACCESS_KEY> -p <NCR_SECRET_KEY>
+    docker login registry.hub.docker.com -u <DOCKER_USERNAME> -p <DOCKER_PASSWORD>
     ```
 
 1. Initialise Aspir8.
 
     ```bash
     cd Aspir8.AppHost
-    aspirate init -cr <NCR_LOGIN_SERVER> -ct latest --non-interactive
+    aspirate init -cr registry.hub.docker.com -ct latest --non-interactive
     ```
 
-1. Build and publish the app to NCR.
+1. Build and publish the app to Docker Hub.
 
     ```bash
     aspirate generate --image-pull-policy IfNotPresent --non-interactive
@@ -454,4 +465,4 @@ TBD
     http://<EXTERNAL_IP_ADDRESS>
     ```
 
-1. Once you are done, delete the entire resources from the console. -->
+1. Once you are done, delete the entire resources from the console and container images from Docker Hub.
