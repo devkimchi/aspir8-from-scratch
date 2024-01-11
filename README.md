@@ -392,8 +392,8 @@ TBD
     ```
 
 1. Create an NKS cluster from the console.
-1. Get NKS cluster kubeconfig from the console.
-1. Connect to the NKS cluster using kubeconfig.
+1. Get the `kubeconfig` of the NKS cluster from the console.
+1. Connect to the NKS cluster using the `kubeconfig`.
 
     ```bash
     export KUBECONFIG=~/.kube/config:~/path/to/downloaded/kubeconfig
