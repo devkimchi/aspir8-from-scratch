@@ -2,7 +2,7 @@
 
 Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspire-overview)-flavoured apps to a [Kubernetes](https://kubernetes.io/) cluster, through [Aspir8](https://github.com/prom3theu5/aspirational-manifests)! Are you new to Kubernetes? Don't worry. Let's start from scratch.
 
-> This document is based on MacOS Sonoma with M2 Silicon Chip. If you are using a different OS or different chipset, it might be behaving differently.
+<!-- > This document is based on MacOS Sonoma with M2 Silicon Chip. If you are using a different OS or different chipset, it might be behaving differently. -->
 
 ## Prerequisites
 
@@ -35,14 +35,24 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 1. Get dashboard version.
 
     ```bash
+    # Bash
     dashboard_version=$(curl 'https://api.github.com/repos/kubernetes/dashboard/releases' | \
-      jq -r '[.[] | select(.name | contains("-") | not)] | .[0].name')
+        jq -r '[.[] | select(.name | contains("-") | not)] | .[0].name')
+
+    # PowerShell
+    $dashboard_version = $($(Invoke-RestMethod https://api.github.com/repos/kubernetes/dashboard/releases) | `
+        Where-Object { $_.name -notlike "*-*" } | Select-Object -First 1).name
     ```
 
 1. Install dashboard.
 
     ```bash
+    # Bash
     kubectl apply -f \
+      https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
+
+    # PowerShell
+    kubectl apply -f `
       https://raw.githubusercontent.com/kubernetes/dashboard/$dashboard_version/aio/deploy/recommended.yaml
     ```
 
@@ -56,43 +66,22 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 1. Create admin user.
 
     ```bash
-    kubectl apply -f - <<EOF
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: admin-user
-      namespace: kubernetes-dashboard
-    ---
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRoleBinding
-    metadata:
-      name: admin-user
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: ClusterRole
-      name: cluster-admin
-    subjects:
-    - kind: ServiceAccount
-      name: admin-user
-      namespace: kubernetes-dashboard
-    ---
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: admin-user
-      namespace: kubernetes-dashboard
-      annotations:
-        kubernetes.io/service-account.name: "admin-user"
-    type: kubernetes.io/service-account-token
-    EOF
+    kubectl apply -f ./admin-user.yaml
     ```
 
-1. Get the access token.
+1. Get the access token. Take note the access token to access the dashboard.
 
     ```bash
+    # Bash
     kubectl get secret admin-user \
-      -n kubernetes-dashboard \
-      -o jsonpath={".data.token"} | base64 -d
+        -n kubernetes-dashboard \
+        -o jsonpath={".data.token"} | base64 -d
+
+    # PowerShell
+    kubectl get secret admin-user `
+        -n kubernetes-dashboard `
+        -o jsonpath='{ .data.token }' | `
+        % { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($_)) }
     ```
 
 1. Run the proxy server.
@@ -116,7 +105,11 @@ TBD -->
 1. Install .NET Aspire workload.
 
     ```bash
+    # Bash
     sudo dotnet workload update && sudo dotnet workload install aspire
+
+    # PowerShell
+    dotnet workload update && dotnet workload install aspire
     ```
 
 1. Create a new Aspire starter app.
@@ -137,7 +130,7 @@ TBD -->
     dotnet run --project Aspir8.AppHost
     ```
 
-1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not. The port number might be different from the example below.
 
     ```text
     http://localhost:18888
@@ -169,6 +162,7 @@ TBD -->
     ```
 
    - Set the fall-back container registry to `localhost:6000`.
+   - Skip the repository prefix.
    - Skip the fall-back container tag.
    - Skip the custom directory for the kustomize manifest template.
 
@@ -238,17 +232,27 @@ TBD -->
 1. Create an [Azure Container Registry (ACR)](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
     ```bash
+    # Bash
     az acr create \
         -g $AZ_RESOURCE_GROUP \
         -n $ACR_NAME \
         -l $AZ_LOCATION \
         --sku Basic \
         --admin-enabled true
+
+    # PowerShell
+    az acr create `
+        -g $AZ_RESOURCE_GROUP `
+        -n $ACR_NAME `
+        -l $AZ_LOCATION `
+        --sku Basic `
+        --admin-enabled true
     ```
 
 1. Get ACR credentials.
 
     ```bash
+    # Bash
     export ACR_LOGIN_SERVER=$(az acr show \
         -g $AZ_RESOURCE_GROUP \
         -n $ACR_NAME \
@@ -261,6 +265,20 @@ TBD -->
         -g $AZ_RESOURCE_GROUP \
         -n $ACR_NAME \
         --query "passwords[0].value" -o tsv)
+
+    # PowerShell
+    $ACR_LOGIN_SERVER = $(az acr show `
+        -g $AZ_RESOURCE_GROUP `
+        -n $ACR_NAME `
+        --query "loginServer" -o tsv)
+    $ACR_USERNAME = $(az acr credential show `
+        -g $AZ_RESOURCE_GROUP `
+        -n $ACR_NAME `
+        --query "username" -o tsv)
+    $ACR_PASSWORD = $(az acr credential show `
+        -g $AZ_RESOURCE_GROUP `
+        -n $ACR_NAME `
+        --query "passwords[0].value" -o tsv)
     ```
 
 1. Create an [AKS](https://learn.microsoft.com/azure/aks/intro-kubernetes) cluster.
@@ -268,6 +286,7 @@ TBD -->
    > **Note:** Depending on the location you create the cluster, the VM size might vary.
 
     ```bash
+    # Bash
     az aks create \
         -g $AZ_RESOURCE_GROUP \
         -n $AKS_CLUSTER_NAME \
@@ -277,14 +296,31 @@ TBD -->
         --network-plugin azure \
         --generate-ssh-keys \
         --attach-acr $ACR_NAME
+
+    # PowerShell
+    az aks create `
+        -g $AZ_RESOURCE_GROUP `
+        -n $AKS_CLUSTER_NAME `
+        -l $AZ_LOCATION `
+        --node-resource-group $AZ_NODE_RESOURCE_GROUP `
+        --node-vm-size Standard_B2s `
+        --network-plugin azure `
+        --generate-ssh-keys `
+        --attach-acr $ACR_NAME
     ```
 
 1. Connect to the AKS cluster.
 
     ```bash
+    # Bash
     az aks get-credentials \
         -g $AZ_RESOURCE_GROUP \
         -n $AKS_CLUSTER_NAME \
+
+    # PowerShell
+    az aks get-credentials `
+        -g $AZ_RESOURCE_GROUP `
+        -n $AKS_CLUSTER_NAME `
     ```
 
 1. Connect to ACR.
@@ -323,19 +359,7 @@ TBD -->
 1. Install a load balancer to the AKS cluster.
 
     ```bash
-    kubectl apply -f - <<EOF
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: webfrontend
-    spec:
-      ports:
-      - port: 80
-        targetPort: 8080
-      selector:
-        app: webfrontend
-      type: LoadBalancer
-    EOF
+    kubectl apply -f ./load-balancer.yaml
     ```
 
 1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
@@ -366,7 +390,11 @@ TBD
 
 ### Use NHN Kubernetes Services (NKS)
 
-> **Note:** It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Kubernetes Service (NKS), and uses [Docker Hub](https://hub.docker.com) as the container registry.
+> **Note:**
+> 
+> - It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Kubernetes Service (NKS).
+> - If you use .NET SDK 8.0.1 or lower, use [Docker Hub](https://hub.docker.com) as the container registry.
+> - If you use .NET SDK 8.0.2 or higher, use [NHN Container Registry (NCR)](https://www.nhncloud.com/kr/service/container/nhn-container-registry-ncr) as the container registry.
 
 1. Add the following Docker Hub repository details to `Aspir8.ApiService/Aspir8.ApiService.csproj`.
 
@@ -438,19 +466,7 @@ TBD
 1. Install a load balancer to the NKS cluster.
 
     ```bash
-    kubectl apply -f - <<EOF
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: webfrontend
-    spec:
-      ports:
-      - port: 80
-        targetPort: 8080
-      selector:
-        app: webfrontend
-      type: LoadBalancer
-    EOF
+    kubectl apply -f ./load-balancer.yaml
     ```
 
 1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
