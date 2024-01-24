@@ -7,13 +7,20 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 ## Prerequisites
 
 - for Aspire
-  - [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) with the [Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling?tabs=dotnet-cli)
+  - [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) 8.0.200 or higher with the [Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling?tabs=dotnet-cli)
   - [Visual Studio Code](https://code.visualstudio.com/) with the [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension
 - for local Kubernetes cluster
   - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - for Azure
   - [Azure subscription](https://azure.microsoft.com/free)
   - [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
+- for AWS
+  - [AWS subscription](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html?nc2=h_ct&src=header_signup)
+  - [AWS CLI](https://aws.amazon.com/cli/)
+- for GKE
+  - TBD
+- for NHN Cloud
+  - [NHN Cloud subscription](https://id.nhncloud.com/join)
 
 ## Local Kubernetes Cluster Setup through Docker Desktop
 
@@ -215,12 +222,21 @@ TBD -->
 1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `koreacentral`).
 
     ```bash
+    # Bash
     export AZURE_ENV_NAME="aspir8$RANDOM"
     export AZ_RESOURCE_GROUP=rg-$AZURE_ENV_NAME
     export AZ_NODE_RESOURCE_GROUP=rg-$AZURE_ENV_NAME-mc
     export AZ_LOCATION=eastus
     export ACR_NAME=acr$AZURE_ENV_NAME
     export AKS_CLUSTER_NAME=aks-$AZURE_ENV_NAME
+
+    # PowerShell
+    $AZURE_ENV_NAME = "aspir8$(Get-Random -Minimum 1000 -Maximum 9999)"
+    $AZ_RESOURCE_GROUP = "rg-$AZURE_ENV_NAME"
+    $AZ_NODE_RESOURCE_GROUP = "rg-$AZURE_ENV_NAME-mc"
+    $AZ_LOCATION = "eastus"
+    $ACR_NAME = "acr$AZURE_ENV_NAME"
+    $AKS_CLUSTER_NAME = "aks-$AZURE_ENV_NAME"
     ```
 
 1. Create a resource group.
@@ -359,7 +375,7 @@ TBD -->
 1. Install a load balancer to the AKS cluster.
 
     ```bash
-    kubectl apply -f ./load-balancer.yaml
+    kubectl apply -f ../load-balancer.yaml
     ```
 
 1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
@@ -382,7 +398,104 @@ TBD -->
 
 ### Use Amazon Elastic Kubernetes Service (EKS)
 
-TBD
+> **Note:**
+> 
+> - It uses both [AWS Console](https://console.aws.amazon.com/) and [AWS CLI](https://aws.amazon.com/cli/) to provision resources to AWS.
+> - It uses the Root account for this demo purpose only. You should use the IAM user with the least privilege.
+
+1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `koreacentral`).
+
+    ```bash
+    # Bash
+    export AWS_ENV_NAME="aspir8$RANDOM"
+    export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+    export AWS_LOCATION=ap-northeast-2 # Seoul
+    export ECR_LOGIN_SERVER=$AWS_ACCOUNT_ID.dkr.ecr.AWS_LOCATION.amazonaws.com
+    export EKS_CLUSTER_NAME=eks-$AWS_ENV_NAME
+    export EKS_NODE_GROUP_NAME=aspir8-nodegroup
+
+    # PowerShell
+    $AWS_ENV_NAME = "aspir8$(Get-Random -Minimum 1000 -Maximum 9999)"
+    $AWS_ACCOUNT_ID = $(aws sts get-caller-identity --query "Account" --output text)
+    $AWS_LOCATION = "ap-northeast-2" # Seoul
+    $ECR_LOGIN_SERVER = "$($AWS_ACCOUNT_ID).dkr.ecr.$($AWS_LOCATION).amazonaws.com"
+    $EKS_CLUSTER_NAME = "eks-$AWS_ENV_NAME"
+    $EKS_NODE_GROUP_NAME = "aspir8-nodegroup"
+    ```
+
+1. Create an EKS cluster by following this [document](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html).
+
+   > **Note:** Make sure that you use the ECR name and EKS cluster name from the environment variables above.
+
+1. Connect to ECR.
+
+    ```bash
+    aws ecr get-login-password --region $AWS_LOCATION | docker login --username AWS --password-stdin $ECR_LOGIN_SERVER
+    ```
+
+1. Create repositories in ECR.
+
+    ```bash
+    aws ecr create-repository --repository-name apiservice --region $AWS_LOCATION
+    aws ecr create-repository --repository-name webfrontend --region $AWS_LOCATION
+    ```
+
+1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
+
+    ```bash
+    dotnet tool install -g aspirate --prerelease
+    ```
+
+1. Initialise Aspir8.
+
+    ```bash
+    cd Aspir8.AppHost
+    aspirate init -cr $ECR_LOGIN_SERVER -ct latest --non-interactive
+    ```
+
+1. Build and publish the app to ECR.
+
+    ```bash
+    aspirate generate --image-pull-policy IfNotPresent --non-interactive
+    ```
+
+1. Deploy the app to the EKS cluster.
+
+    ```bash
+    aspirate apply -k $EKS_CLUSTER_NAME --non-interactive
+    ```
+
+1. Install a load balancer to the EKS cluster.
+
+    ```bash
+    kubectl apply -f ../load-balancer.yaml
+    ```
+
+1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
+
+    ```bash
+    kubectl get services
+    ```
+
+1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
+
+    ```text
+    http://<xxxx.ap-northeast-2.elb.amazonaws.com>
+    ```
+
+1. Once you are done, delete the entire resources from AWS.
+
+    ```bash
+    # Delete EKS node group
+    aws eks delete-nodegroup --nodegroup-name $EKS_NODE_GROUP_NAME --cluster-name $EKS_CLUSTER_NAME
+
+    # Delete EKS cluster
+    aws eks delete-cluster --name $EKS_CLUSTER_NAME
+
+    # Delete ECR repositories
+    aws ecr delete-repository --repository-name apiservice --force --region $AWS_LOCATION
+    aws ecr delete-repository --repository-name webfrontend --force --region $AWS_LOCATION
+    ```
 
 ### Use Google Kubernetes Engine (GKE)
 
@@ -393,8 +506,7 @@ TBD
 > **Note:**
 > 
 > - It uses [NHN Cloud Console](https://console.nhncloud.com/) to manage NHN Kubernetes Service (NKS).
-> - If you use .NET SDK 8.0.1 or lower, use [Docker Hub](https://hub.docker.com) as the container registry.
-> - If you use .NET SDK 8.0.2 or higher, use [NHN Container Registry (NCR)](https://www.nhncloud.com/kr/service/container/nhn-container-registry-ncr) as the container registry.
+> - It uses [NHN Container Registry (NCR)](https://www.nhncloud.com/kr/service/container/nhn-container-registry-ncr) as the container registry.
 
 1. Add the following Docker Hub repository details to `Aspir8.ApiService/Aspir8.ApiService.csproj`.
 
