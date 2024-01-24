@@ -226,7 +226,7 @@ TBD -->
     export AZURE_ENV_NAME="aspir8$RANDOM"
     export AZ_RESOURCE_GROUP=rg-$AZURE_ENV_NAME
     export AZ_NODE_RESOURCE_GROUP=rg-$AZURE_ENV_NAME-mc
-    export AZ_LOCATION=eastus
+    export AZ_LOCATION=koreacentral
     export ACR_NAME=acr$AZURE_ENV_NAME
     export AKS_CLUSTER_NAME=aks-$AZURE_ENV_NAME
 
@@ -234,7 +234,7 @@ TBD -->
     $AZURE_ENV_NAME = "aspir8$(Get-Random -Minimum 1000 -Maximum 9999)"
     $AZ_RESOURCE_GROUP = "rg-$AZURE_ENV_NAME"
     $AZ_NODE_RESOURCE_GROUP = "rg-$AZURE_ENV_NAME-mc"
-    $AZ_LOCATION = "eastus"
+    $AZ_LOCATION = "koreacentral"
     $ACR_NAME = "acr$AZURE_ENV_NAME"
     $AKS_CLUSTER_NAME = "aks-$AZURE_ENV_NAME"
     ```
@@ -242,7 +242,7 @@ TBD -->
 1. Create a resource group.
 
     ```bash
-    az group create -n=$AZ_RESOURCE_GROUP -l=$AZ_LOCATION
+    az group create -n $AZ_RESOURCE_GROUP -l $AZ_LOCATION
     ```
 
 1. Create an [Azure Container Registry (ACR)](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
@@ -360,6 +360,8 @@ TBD -->
     aspirate init -cr $ACR_LOGIN_SERVER -ct latest --non-interactive
     ```
 
+   > **Note:** If you are asked to enter or skip the repository prefix, enter `n` to skip it.
+
 1. Build and publish the app to ACR.
 
     ```bash
@@ -378,7 +380,7 @@ TBD -->
     kubectl apply -f ../load-balancer.yaml
     ```
 
-1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
+1. Confirm the `webfrontend-lb` service type is `LoadBalancer`, and note the external IP address of the `webfrontend-lb` service.
 
     ```bash
     kubectl get services
@@ -393,7 +395,7 @@ TBD -->
 1. Once you are done, delete the entire resources from Azure.
 
     ```bash
-    az group delete -n $AZ_RESOURCE_GROUP --no-wait -f -y
+    az group delete -n $AZ_RESOURCE_GROUP -f Microsoft.Compute/virtualMachineScaleSets -y --no-wait
     ```
 
 ### Use Amazon Elastic Kubernetes Service (EKS)
@@ -403,7 +405,7 @@ TBD -->
 > - It uses both [AWS Console](https://console.aws.amazon.com/) and [AWS CLI](https://aws.amazon.com/cli/) to provision resources to AWS.
 > - It uses the Root account for this demo purpose only. You should use the IAM user with the least privilege.
 
-1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `koreacentral`).
+1. Set environment variables. Make sure that you use the closest or preferred location for provisioning resources (eg. `ap-northeast-2`).
 
     ```bash
     # Bash
@@ -411,6 +413,7 @@ TBD -->
     export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
     export AWS_LOCATION=ap-northeast-2 # Seoul
     export ECR_LOGIN_SERVER=$AWS_ACCOUNT_ID.dkr.ecr.AWS_LOCATION.amazonaws.com
+    export EKS_STACK_NAME=aspir8-stack
     export EKS_CLUSTER_NAME=eks-$AWS_ENV_NAME
     export EKS_NODE_GROUP_NAME=aspir8-nodegroup
 
@@ -419,13 +422,88 @@ TBD -->
     $AWS_ACCOUNT_ID = $(aws sts get-caller-identity --query "Account" --output text)
     $AWS_LOCATION = "ap-northeast-2" # Seoul
     $ECR_LOGIN_SERVER = "$($AWS_ACCOUNT_ID).dkr.ecr.$($AWS_LOCATION).amazonaws.com"
+    $EKS_STACK_NAME = "aspir8-stack"
     $EKS_CLUSTER_NAME = "eks-$AWS_ENV_NAME"
     $EKS_NODE_GROUP_NAME = "aspir8-nodegroup"
     ```
 
-1. Create an EKS cluster by following this [document](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html).
+1. Create a VPC stack for EKS.
 
-   > **Note:** Make sure that you use the ECR name and EKS cluster name from the environment variables above.
+    ```bash
+    # Bash
+    aws cloudformation create-stack \
+        --region $AWS_LOCATION \
+        --stack-name $EKS_STACK_NAME \
+        --template-url https://s3.us-west-2.amazonaws.com/amazon-eks/cloudformation/2020-10-29/amazon-eks-vpc-private-subnets.yaml
+    
+    # PowerShell
+    aws cloudformation create-stack `
+        --region $AWS_LOCATION `
+        --stack-name $EKS_STACK_NAME `
+        --template-url https://s3.us-west-2.amazonaws.com/amazon-eks/cloudformation/2020-10-29/amazon-eks-vpc-private-subnets.yaml
+    ```
+
+1. Create an EKS cluster role and attach it to the policy.
+
+    ```bash
+    # Bash
+    aws iam create-role \
+        --role-name Aspir8AmazonEKSClusterRole \
+        --assume-role-policy-document file://"eks-cluster-role-trust-policy.json"
+    aws iam attach-role-policy \
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy \
+        --role-name Aspir8AmazonEKSClusterRole
+    
+    # PowerShell
+    aws iam create-role `
+        --role-name Aspir8AmazonEKSClusterRole `
+        --assume-role-policy-document file://"eks-cluster-role-trust-policy.json"
+    aws iam attach-role-policy `
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy `
+        --role-name Aspir8AmazonEKSClusterRole
+    ```
+
+1. Create an EKS cluster node role and attach it to the policies.
+
+    ```bash
+    # Bash
+    aws iam create-role \
+        --role-name Aspir8AmazonEKSNodeRole \
+        --assume-role-policy-document file://"eks-node-role-trust-policy.json"
+    aws iam attach-role-policy \
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy \
+        --role-name Aspir8AmazonEKSNodeRole
+    aws iam attach-role-policy \
+        --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly \
+        --role-name Aspir8AmazonEKSNodeRole
+    aws iam attach-role-policy \
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy \
+        --role-name Aspir8AmazonEKSNodeRole
+    
+    # PowerShell
+    aws iam create-role `
+        --role-name Aspir8AmazonEKSNodeRole `
+        --assume-role-policy-document file://"eks-node-role-trust-policy.json"
+    aws iam attach-role-policy `
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy `
+        --role-name Aspir8AmazonEKSNodeRole
+    aws iam attach-role-policy `
+        --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly `
+        --role-name Aspir8AmazonEKSNodeRole
+    aws iam attach-role-policy `
+        --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy `
+        --role-name Aspir8AmazonEKSNodeRole
+    ```
+
+1. Create an EKS cluster by following this [document](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html#eks-create-cluster).
+
+1. Create an EKS cluster nodes by following this [document](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html#eks-launch-workers).
+
+1. Connect to EKS cluster.
+
+    ```bash
+    aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_LOCATION
+    ```
 
 1. Connect to ECR.
 
@@ -453,6 +531,8 @@ TBD -->
     aspirate init -cr $ECR_LOGIN_SERVER -ct latest --non-interactive
     ```
 
+   > **Note:** If you are asked to enter or skip the repository prefix, enter `n` to skip it.
+
 1. Build and publish the app to ECR.
 
     ```bash
@@ -471,7 +551,7 @@ TBD -->
     kubectl apply -f ../load-balancer.yaml
     ```
 
-1. Confirm the `webfrontend` service type is `LoadBalancer`, and note the external IP address of the `webfrontend` service.
+1. Confirm the `webfrontend-lb` service type is `LoadBalancer`, and note the URL under the external IP address column of the `webfrontend-lb` service.
 
     ```bash
     kubectl get services
