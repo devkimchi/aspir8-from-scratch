@@ -14,6 +14,13 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 - for Azure
   - [Azure subscription](https://azure.microsoft.com/free)
   - [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
+- for AWS
+  - [AWS subscription](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html?nc2=h_ct&src=header_signup)
+  - [AWS CLI](https://aws.amazon.com/cli/)
+- for GKE
+  - TBD
+- for NHN Cloud
+  - [NHN Cloud subscription](https://id.nhncloud.com/join)
 
 ## Local Kubernetes Cluster Setup through Docker Desktop
 
