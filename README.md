@@ -499,7 +499,7 @@ TBD -->
 
 1. Create an EKS cluster nodes by following this [document](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html#eks-launch-workers).
 
-1. Connect to EKS cluster.
+1. Connect to the EKS cluster.
 
     ```bash
     aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_LOCATION
@@ -575,6 +575,9 @@ TBD -->
     # Delete ECR repositories
     aws ecr delete-repository --repository-name apiservice --force --region $AWS_LOCATION
     aws ecr delete-repository --repository-name webfrontend --force --region $AWS_LOCATION
+
+    # Delete CloudFormation stack
+    aws cloudformation delete-stack --stack-name $EKS_STACK_NAME
     ```
 
 ### Use Google Kubernetes Engine (GKE)
