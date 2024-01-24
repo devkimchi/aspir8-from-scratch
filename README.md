@@ -580,6 +580,12 @@ TBD -->
     aws cloudformation delete-stack --stack-name $EKS_STACK_NAME
     ```
 
+   > **Note:**
+   > 
+   > - Deleting the EKS node group takes 5-10 mins.
+   > - Only after the EKS node group is deleted, the EKS cluster can be deleted.
+   > - While deleting the CloudFormation stack, you might be failing the deletion process. It's highly likely because of Elastic Load Balancer. Go to [EC2 Dashboard](https://ap-northeast-2.console.aws.amazon.com/ec2/home), and delete the existing load balancer instance first.
+
 ### Use Google Kubernetes Engine (GKE)
 
 TBD
