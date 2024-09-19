@@ -485,11 +485,11 @@ $RECYCLE.BIN/
 
 
 .DS_Store
-Aspir8.sln
+# Aspir8.sln
 src/
 aks/
 eks/
 gke/
 nks/
 
-Aspir8*/
+# Aspir8*/

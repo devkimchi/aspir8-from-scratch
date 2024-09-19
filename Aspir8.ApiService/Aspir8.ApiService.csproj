@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <AssemblyName>Aspir8.ApiService</AssemblyName>
+    <RootNamespace>Aspir8.ApiService</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspir8.ServiceDefaults\Aspir8.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

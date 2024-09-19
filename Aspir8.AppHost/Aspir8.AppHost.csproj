@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+
+    <AssemblyName>Aspir8.AppHost</AssemblyName>
+    <RootNamespace>Aspir8.AppHost</RootNamespace>
+
+    <UserSecretsId>a0077b3a-0ef1-4e8f-b641-62765a5fd954</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspir8.ApiService\Aspir8.ApiService.csproj" />
+    <ProjectReference Include="..\Aspir8.Web\Aspir8.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+</Project>
