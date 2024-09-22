@@ -170,7 +170,7 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 1. Access the dashboard using the following URL:
 
     ```text
-    http://localhost:8443
+    https://localhost:8443
     ```
 
 1. Enter the access token to access the dashboard.
@@ -212,7 +212,7 @@ TBD -->
 1. Open the app in a browser, and go to the weather page to see whether the API is working or not. The port number might be different from the example below.
 
     ```text
-    http://localhost:18888
+    http://localhost:17008
     ```
 
 ## Aspire-flavoured App Deployment to Kubernetes Cluster through Aspir8
