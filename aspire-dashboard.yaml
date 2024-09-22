@@ -8,7 +8,7 @@ spec:
     port: 18888
     targetPort: 18888
   - name: otlp
-    port: 18889
+    port: 4317
     targetPort: 18889
   selector:
     app: aspire-dashboard
