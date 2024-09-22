@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aspire-dashboard-lb
+spec:
+  ports:
+  - name: http
+    port: 18888
+    targetPort: 18888
+  - name: otlp
+    port: 18889
+    targetPort: 18889
+  selector:
+    app: aspire-dashboard
+  type: LoadBalancer

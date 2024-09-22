@@ -4,6 +4,23 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 <!-- > This document is based on MacOS Sonoma with M2 Silicon Chip. If you are using a different OS or different chipset, it might be behaving differently. -->
 
+## Table of Contents
+
+- [Aspir8 from Scratch](#aspir8-from-scratch)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Local Kubernetes Cluster Setup through Docker Desktop](#local-kubernetes-cluster-setup-through-docker-desktop)
+  - [Kubernetes Dashboard Setup](#kubernetes-dashboard-setup)
+    - [Use Kubernetes Dashboard v2.x](#use-kubernetes-dashboard-v2x)
+    - [Use Helm Charts](#use-helm-charts)
+  - [Aspire-flavoured App Build](#aspire-flavoured-app-build)
+  - [Aspire-flavoured App Deployment to Kubernetes Cluster through Aspir8](#aspire-flavoured-app-deployment-to-kubernetes-cluster-through-aspir8)
+    - [Use local container registry](#use-local-container-registry)
+    - [Use Azure Kubernetes Services (AKS)](#use-azure-kubernetes-services-aks)
+    - [Use Amazon Elastic Kubernetes Service (EKS)](#use-amazon-elastic-kubernetes-service-eks)
+    - [Use Google Kubernetes Engine (GKE)](#use-google-kubernetes-engine-gke)
+    - [Use NHN Kubernetes Services (NKS)](#use-nhn-kubernetes-services-nks)
+
 ## Prerequisites
 
 - for Aspire
@@ -30,9 +47,11 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
 
 ## Kubernetes Dashboard Setup
 
+### Use Kubernetes Dashboard v2.x
+
 <!-- If you want to directly setup the Kubernetes Dashboard on your local machine, follow the steps below. Otherwise, skip this section and go to the next section, [MicroK8s Setup](#microk8s-setup). -->
 
-> **Note:** This is only applicable for Kubernetes Dashboard v2.x. From v3.x, use [Helm Charts](https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard) approach.
+> **Note:** This is only applicable for Kubernetes Dashboard v2.x.
 
 **References**
 
@@ -103,6 +122,59 @@ Let's deploy [Aspire](https://learn.microsoft.com/dotnet/aspire/get-started/aspi
     http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
     ```
 
+1. Enter the access token to access the dashboard.
+
+### Use Helm Charts
+
+> **Note:** From Kubernetes Dashboard v3.x, use [Helm Charts](https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard) approach.
+
+1. Install [Helm](https://helm.sh/docs/intro/install/).
+
+1. Run the following commands to install the Kubernetes Dashboard.
+
+    ```bash
+    # Add kubernetes-dashboard repository
+    helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+
+    # Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
+    helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+    ```
+
+1. Create admin user.
+
+    ```bash
+    kubectl apply -f ./admin-user.yaml
+    ```
+
+1. Get the access token. Take note the access token to access the dashboard.
+
+    ```bash
+    # Bash
+    kubectl get secret admin-user \
+        -n kubernetes-dashboard \
+        -o jsonpath={".data.token"} | base64 -d
+
+    # PowerShell
+    kubectl get secret admin-user `
+        -n kubernetes-dashboard `
+        -o jsonpath='{ .data.token }' | `
+        % { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($_)) }
+    ```
+
+1. Run the proxy server.
+
+    ```bash
+    kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443
+    ```
+
+1. Access the dashboard using the following URL:
+
+    ```text
+    http://localhost:8443
+    ```
+
+1. Enter the access token to access the dashboard.
+
 <!-- ## MicroK8s Setup
 
 TBD -->
@@ -158,38 +230,27 @@ TBD -->
 1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
 
     ```bash
-    dotnet tool install -g aspirate --prerelease
+    dotnet tool install -g aspirate
     ```
 
 1. Initialise Aspir8.
 
     ```bash
     cd Aspir8.AppHost
-    aspirate init
+    aspirate init -cr localhost:6000 -ct latest --disable-secrets true --non-interactive
     ```
-
-   - Set the fall-back container registry to `localhost:6000`.
-   - Skip the repository prefix.
-   - Skip the fall-back container tag.
-   - Skip the custom directory for the kustomize manifest template.
 
 1. Build and publish the app to the local container registry.
 
     ```bash
-    aspirate generate
+    aspirate generate --image-pull-policy Always --include-dashboard true --disable-secrets true --non-interactive
     ```
-
-   - Choose all components while generating.
-   - Select the impage pull policy to `IfNotPresent`.
-   - Generate the top level kustomize manifest for the Kubernetes cluster.
 
 1. Deploy the app to the Kubernetes cluster.
 
     ```bash
-    aspirate apply
+    aspirate apply -k docker-desktop --non-interactive
     ```
-
-   - Choose the Kubernetes cluster to `docker-desktop`.
 
 1. Check the services in the Kubernetes cluster.
 
@@ -197,22 +258,28 @@ TBD -->
     kubectl get services
     ```
 
-1. Update the service type of `webfrontent` to `NodePort`.
+1. Install a load balancer for `webfrontend` to the local Kubernetes cluster.
 
     ```bash
-    kubectl patch svc webfrontend -n default -p '{"spec": {"type": "NodePort"}}'
+    kubectl apply -f ../load-balancer.yaml
     ```
 
-1. Confirm the `webfrontend` service type updated, and note the port number of the `webfrontend` service, `32689` for example.
+1. Install a load balancer for `aspire-dashboard` to the local Kubernetes cluster.
 
     ```bash
-    kubectl get services
+    kubectl apply -f ../aspire-dashboard.yaml
+    ```
+
+1. Open the app in a browser, and go to the dashboard page to see the logs
+
+    ```text
+    http://localhost:18888
     ```
 
 1. Open the app in a browser, and go to the weather page to see whether the API is working or not.
 
     ```text
-    http://localhost:32689
+    http://localhost/weather
     ```
 
 ### Use Azure Kubernetes Services (AKS)
@@ -350,7 +417,7 @@ TBD -->
 1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
 
     ```bash
-    dotnet tool install -g aspirate --prerelease
+    dotnet tool install -g aspirate
     ```
 
 1. Initialise Aspir8.
@@ -521,7 +588,7 @@ TBD -->
 1. Install [Aspir8](https://github.com/prom3theu5/aspirational-manifests).
 
     ```bash
-    dotnet tool install -g aspirate --prerelease
+    dotnet tool install -g aspirate
     ```
 
 1. Initialise Aspir8.
